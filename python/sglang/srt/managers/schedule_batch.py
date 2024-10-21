@@ -29,8 +29,8 @@ ScheduleBatch -> ModelWorkerBatch -> ForwardBatch
   It contains low-level tensor data. Most of the data consists of GPU tensors.
 """
 
+import dataclasses
 import logging
-from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 
 import torch
@@ -116,7 +116,7 @@ class FINISH_ABORT(BaseFinishReason):
         }
 
 
-@dataclass
+@dataclasses.dataclass
 class ImageInputs:
     """The image related inputs."""
 
@@ -407,7 +407,7 @@ class Req:
 bid = 0
 
 
-@dataclass
+@dataclasses.dataclass
 class ScheduleBatch:
     """Store all inforamtion of a batch."""
 
@@ -425,7 +425,6 @@ class ScheduleBatch:
     req_pool_indices: torch.Tensor = None
     seq_lens: torch.Tensor = None
     out_cache_loc: torch.Tensor = None
-
     output_ids: torch.Tensor = None
 
     # For processing logprobs
@@ -442,27 +441,23 @@ class ScheduleBatch:
     # Stream
     has_stream: bool = False
 
-    # device
-    device: str = "cuda"
-
     # Has regex
     has_regex: bool = False
 
+    # device
+    device: str = "cuda"
+
     @classmethod
     def init_new(cls, reqs, req_to_token_pool, token_to_kv_pool, tree_cache):
-        return_logprob = any(req.return_logprob for req in reqs)
-        has_stream = any(req.stream for req in reqs)
-        has_regex = any(req.regex_fsm for req in reqs)
-
         return cls(
             reqs=reqs,
             req_to_token_pool=req_to_token_pool,
             token_to_kv_pool=token_to_kv_pool,
             tree_cache=tree_cache,
-            return_logprob=return_logprob,
-            has_stream=has_stream,
+            return_logprob=any(req.return_logprob for req in reqs),
+            has_stream=any(req.stream for req in reqs),
+            has_regex=any(req.regex_fsm for req in reqs),
             device=req_to_token_pool.device,
-            has_regex=has_regex,
         )
 
     def batch_size(self):
@@ -754,7 +749,7 @@ class ScheduleBatch:
 
         return jump_forward_reqs
 
-    def prepare_for_decode(self):
+    def prepare_for_decode(self, enable_overlap: bool = False):
         self.forward_mode = ForwardMode.DECODE
 
         self.input_ids = self.output_ids
@@ -767,10 +762,19 @@ class ScheduleBatch:
         # Alloc mem
         bs = len(self.reqs)
         self.out_cache_loc = self.alloc_token_slots(bs)
-        self.req_to_token_pool.write(
-            (self.req_pool_indices, self.seq_lens), self.out_cache_loc
-        )
-        self.seq_lens.add_(1)
+
+        if enable_overlap:
+            # Do not use in-place operations in the overlap mode
+            self.req_to_token_pool.write(
+                (self.req_pool_indices, self.seq_lens), self.out_cache_loc
+            )
+            self.seq_lens = self.seq_lens + 1
+        else:
+            # A faster in-place version
+            self.req_to_token_pool.write(
+                (self.req_pool_indices, self.seq_lens), self.out_cache_loc
+            )
+            self.seq_lens.add_(1)
 
     def filter_batch(
         self,
@@ -882,6 +886,7 @@ class ScheduleBatch:
         )
 
     def copy(self):
+        # Only contain fields that will be used by process_batch_result
         return ScheduleBatch(
             reqs=self.reqs,
             forward_mode=self.forward_mode,
@@ -897,7 +902,7 @@ class ScheduleBatch:
         )
 
 
-@dataclass
+@dataclasses.dataclass
 class ModelWorkerBatch:
     # The batch id
     bid: int
@@ -937,24 +942,7 @@ class ModelWorkerBatch:
     mrope_positions_delta: List[List[int]]
 
     def copy(self):
-        return ModelWorkerBatch(
-            bid=self.bid,
-            forward_mode=self.forward_mode,
-            input_ids=self.input_ids.clone(),
-            req_pool_indices=self.req_pool_indices,
-            seq_lens=self.seq_lens.clone(),
-            out_cache_loc=self.out_cache_loc,
-            req_to_token_pool_records=self.req_to_token_pool_records,
-            return_logprob=self.return_logprob,
-            top_logprobs_nums=self.top_logprobs_nums,
-            extend_seq_lens=self.extend_seq_lens,
-            extend_prefix_lens=self.extend_prefix_lens,
-            extend_logprob_start_lens=self.extend_logprob_start_lens,
-            image_inputs=self.image_inputs,
-            lora_paths=self.lora_paths,
-            sampling_info=self.sampling_info.copy(),
-            mrope_positions_delta=self.mrope_positions_delta,
-        )
+        return dataclasses.replace(self, sampling_info=self.sampling_info.copy())
 
     def to(self, device: str):
         self.input_ids = self.input_ids.to(device, non_blocking=True)
