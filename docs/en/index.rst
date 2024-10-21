@@ -3,10 +3,9 @@ SGLang Documentation
 
 Welcome to SGLang!
 
-SGLang is a fast serving framework for large language models and vision language models. It makes your interaction with models faster and more controllable by co-designing the backend runtime and frontend language.
+SGLang is a fast, open-source framework for serving large and vision-language models. It enhances speed and control by co-designing the backend runtime and frontend language. Join our vibrant community and contribute to advancing LLM and VLM serving.
 
-The core features include:
-
+The core features of SGLang include:
 
 * **Fast Backend Runtime**: Efficient serving with RadixAttention for prefix caching, jump-forward constrained decoding, continuous batching, token attention (paged attention), tensor parallelism, flashinfer kernels, and quantization (AWQ/FP8/GPTQ/Marlin).
 
@@ -14,12 +13,8 @@ The core features include:
 
 * **Extensive Model Support**: SGLang supports a wide range of generative models including the Llama series (up to Llama 3.1), Mistral, Gemma, Qwen, DeepSeek, LLaVA, Yi-VL, StableLM, Command-R, DBRX, Grok, ChatGLM, InternLM 2 and Exaone 3. It also supports embedding models such as e5-mistral and gte-Qwen2. Easily extensible to support new models.
 
-* **Open Source Community**: SGLang is an open source project with a vibrant community of contributors. We welcome contributions from anyone interested in advancing the state of the art in LLM and VLM serving.
-
 Documentation
 -------------
-
-**In this documentation, we'll dive into these following areas to help you get the most out of SGLang.**
 
 .. toctree::
    :maxdepth: 1

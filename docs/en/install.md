@@ -1,21 +1,6 @@
 # Installation Guide
 
-SGLang comprises a frontend language, namely the Structured Generation Language (SGLang), and a backend runtime known as the SGLang Runtime (SRT).
-
-The frontend can be utilized independently of the backend. This implies that you can install the frontend language on a local device without a GPU and install the backend runtime on a GPU cluster. As a result, you can construct your LM programs locally and establish a connection with the remote backend runtime.
-
-## Quick Installation Options
-
-### 1. Frontend Installation (Client-side, any platform)
-
-```bash
-pip install --upgrade pip
-pip install sglang
-```
-
-**Note: You can check [these examples](https://github.com/sgl-project/sglang/tree/main/examples/frontend_language/usage) for how to use frontend and backend separately.**
-
-### 2. Backend Installation (Server-side, Linux only)
+### Method 1: With pip
 
 ```bash
 pip install --upgrade pip
@@ -23,34 +8,25 @@ pip install "sglang[all]"
 pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/
 ```
 
-**Note: The backend (SRT) is only needed on the server side and is only available for Linux right now.**
-
 **Important: Please check the [flashinfer installation guidance](https://docs.flashinfer.ai/installation.html) to install the proper version according to your PyTorch and CUDA versions.**
 
-### 3. From Source (Latest version, Linux only for full installation)
+### Method 2: From Source
 
 ```bash
 # Use the latest release branch
 # As of this documentation, it's v0.3.4, but newer versions may be available
-# Do not clone the main branch directly; always use a specific release version
-# The main branch may contain unresolved bugs before a new release
+
+# Do not clone the main branch directly
+# Always use a specific release version
+# The main branch may contain unresolved bugs before a official release
+
 git clone -b v0.3.4 https://github.com/sgl-project/sglang.git
 cd sglang
 pip install -e "python[all]"
 pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/
 ```
 
-### 4. OpenAI Backend Only (Client-side, any platform)
-
-If you only need to use the OpenAI backend, you can avoid installing other dependencies by using:
-
-```bash
-pip install "sglang[openai]"
-```
-
-## Advanced Installation Options
-
-### 1. Using Docker (Server-side, Linux only)
+## Method 3: Using Docker
 
 The docker images are available on Docker Hub as [lmsysorg/sglang](https://hub.docker.com/r/lmsysorg/sglang/tags), built from [Dockerfile](https://github.com/sgl-project/sglang/blob/main/docker). Replace `<secret>` below with your huggingface hub [token](https://huggingface.co/docs/hub/en/security-tokens).
 
@@ -62,14 +38,19 @@ docker run --gpus all -p 30000:30000 \
     python3 -m sglang.launch_server --model-path meta-llama/Meta-Llama-3.1-8B-Instruct --host 0.0.0.0 --port 30000
 ```
 
-### 2.Using docker compose
+### Method 4: Using docker compose
 
-This method is recommended if you plan to serve it as a service. A better approach is to use the [k8s-sglang-service.yaml](https://github.com/sgl-project/sglang/blob/main/docker/k8s-sglang-service.yaml).
+<details>
+<summary>More</summary>
 
-1. Copy the [compose.yml](https://github.com/sgl-project/sglang/blob/main/docker/compose.yaml) to your local machine
+> This method is recommended if you plan to serve it as a service.
+> A better approach is to use the [k8s-sglang-service.yaml](./docker/k8s-sglang-service.yaml).
+
+1. Copy the [compose.yml](./docker/compose.yaml) to your local machine
 2. Execute the command `docker compose up -d` in your terminal.
+</details>
 
-### 3.Run on Kubernetes or Clouds with SkyPilot
+### Method 5: Run on Kubernetes or Clouds with SkyPilot
 
 <details>
 <summary>More</summary>
@@ -94,7 +75,7 @@ resources:
 run: |
   conda deactivate
   python3 -m sglang.launch_server \
-    --model-path meta-llama/Meta-Llama-3.1-8B-Instruct \
+    --model-path meta-llama/Llama-3.1-8B-Instruct \
     --host 0.0.0.0 \
     --port 30000
 ```
@@ -110,9 +91,8 @@ sky status --endpoint 30000 sglang
 3. To further scale up your deployment with autoscaling and failure recovery, check out the [SkyServe + SGLang guide](https://github.com/skypilot-org/skypilot/tree/master/llm/sglang#serving-llama-2-with-sglang-for-more-traffic-using-skyserve).
 </details>
 
-## Troubleshooting
+## Common Notes
 
-- For FlashInfer issues on newer GPUs, use `--disable-flashinfer --disable-flashinfer-sampling` when launching the server.
-- For out-of-memory errors, try `--mem-fraction-static 0.7` when launching the server.
-
-For more details and advanced usage, visit the [SGLang GitHub repository](https://github.com/sgl-project/sglang).
+- [FlashInfer](https://github.com/flashinfer-ai/flashinfer) is the default attention kernel backend. It only supports sm75 and above. If you encounter any FlashInfer-related issues on sm75+ devices (e.g., T4, A10, A100, L4, L40S, H100), please switch to other kernels by adding `--attention-backend triton --sampling-backend pytorch` and open an issue on GitHub.
+- If you only need to use the OpenAI backend, you can avoid installing other dependencies by using `pip install "sglang[openai]"`.
+- The frontend can run independently of the backend. You can install the frontend locally (without a GPU) and the backend on a GPU cluster. Use `pip install sglang` to install the frontend, build LM programs locally, and connect to the remote backend. See [these examples](https://github.com/sgl-project/sglang/tree/main/examples/frontend_language/usage) for details.
