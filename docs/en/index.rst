@@ -35,3 +35,4 @@ The core features include:
    :caption: Test
 
    troubleshooting.md
+   test
