@@ -29,3 +29,9 @@ The core features include:
    choices_methods.md
    benchmark_and_profiling.md
    troubleshooting.md
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Test
+
+   troubleshooting.md
